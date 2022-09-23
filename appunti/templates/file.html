@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Appunti UniPv - {{info.nome}}{% endblock %}
+{% block content %}
+
+<div class="container">
+  <center>
+    <br>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/">Home</a>
+      </li>
+      <li class="breadcrumb-item active">{{info.nome}}</li>
+    </ol>
+
+  <br><br>
+    <h2><b>{{info.nome}}</b></h2>
+    {% if possiedo %}<h4>(Acquistato)</h4>{% endif %}
+  </center>
+
+  <div class="container">
+      {% if possiedo %}
+      {% else %}
+      <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div class="text-secondary"><b><u>Corso:</u></b> {{info.nomecorso}} {{info.anno}}°Anno</div>
+              <div class="text-success"><font size="+4"><u>{{info.prezzo}}€</u></font></div>
+            </div>
+
+              <div class="text-secondary"><b><u>Pagine del documento:</u></b> {{info.pagine}}</div>
+              <div class="text-secondary"><b><u>Info e Metodi di Pagamento:</u></b> {{info.info|safe}}</div>
+              
+              <div class="text-secondary"><font size="-2">*Una volta acquistato, il documento potrà essere consultato solo questo sito e non sarà scaricabile (per evitarne la diffusione)</font></div>
+        </div>
+      </div>
+        <br>
+        <div class="text-secondary"><b><u>Breve Anteprima (pagine estratte casualmente):</u></b></div>
+      {% endif %}
+
+        <div class="materiale-anteprima-preview-wrapper">
+          <div class="materiale-anteprima-preview">
+              <div class="materiale-anteprima-preview-inner">
+                {% for l in link %}
+                  <img src="{{l}}" class="img-fluid" alt="">
+                  {% endfor %}
+                  <img src="/static/img/logo.png" width="110" height="110" alt="">
+              </div>
+              
+          </div>
+        </div>
+
+  </div>
+    <center>
+    <font size="+2">
+    <br>
+    <a title="Home" href="/">&laquo; Torna Indietro</a>
+    <br><br>
+    </font>
+    </center>
+</div>
+  
+
+{% if possiedo %}
+<script>
+  document.addEventListener('contextmenu', event => event.preventDefault());
+</script>
+
+<style type="text/css" media="print">
+  BODY {display:none;visibility:hidden;}
+</style>
+
+{% endif %}
+
+{% endblock %}

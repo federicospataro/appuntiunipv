@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Appunti UniPv - Profilo{% endblock %}
+{% block content %}
+
+<div class="container">
+  <center>
+    <br>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/">Home</a>
+      </li>
+      <li class="breadcrumb-item active">Profilo</li>
+    </ol>
+<br>
+    {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if error %}danger{% else %}success{% endif %} alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        {{msg.message}}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+    <h3><b>Profilo Utente</b></h3>
+
+</center>
+    
+    <div class="card">
+      <div class="card-body">
+
+            <div class="d-flex justify-content-between">
+              <div class="text-secondary"><b><u>Nome Utente:</u></b> {{nomeutente}}</div>
+              <div><img src="/static/img/imgprofilo.png" width="80" height="80" alt="profilo"></div>
+            </div>
+            <div class="text-secondary"><b><u>Ruolo:</u></b> {{ruolo}}</div>
+            <div class="text-secondary"><b><u>Numero appunti acquistati:</u></b> {{contacquisti}}</div>
+            <br>
+            <div class="text-secondary"><b><u>Cambia Password:</u></b></div>
+            <form action="/profilo" method="post">
+              {% csrf_token %}
+              <input type="password" maxlength="30" class="form-control" id="vecchia" name="vecchia"  placeholder="Password Attuale">
+              <br>
+              <input type="password" maxlength="30" class="form-control" id="nuova" name="nuova" placeholder="Password Nuova">
+              <br>
+              <button type="submit" class="btn btn-primary">Invia</button>
+            </form>
+
+      </div>
+    </div>
+    <br>
+    <hr>
+    <br>
+    <h3><u>I miei Appunti:</u></h3>
+    <div class="row">
+      {% for f in listaf %}
+      <div class="col-lg-3 col-sm-8 portfolio-item">
+        <div class="card h-100" {% if f.loho %}style="border:3px groove green;"{% endif %}>
+        <div class="card-body">
+          <h5 class="card-title">{{f.nome}}</h5>
+          <h6 class="card-subtitle mb-2 text-muted">{{f.anno}}°Anno &nbsp; &nbsp;{{f.pagine}} Pagine &nbsp;&nbsp; &nbsp; {% if f.loho %}{% else %}<a class="text-success"><b>{{f.prezzo}}€</b></a>{% endif %}</h6>
+          <a href="/file/{{f.codice}}">Visualizza &raquo;</a>
+        </div>
+      </div>
+    </div>
+      {% endfor %}
+    </div>
+
+    <center>
+      <font size="+2">
+      <br>
+      <a title="Home" href="/">&laquo; Torna Indietro</a>
+      <br><br>
+      </font>
+      </center>
+  
+</div>
+  
+
+{% endblock %}

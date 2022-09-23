@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Appunti UniPv - Login{% endblock %}
+{% block content %}
+
+<div class="container">
+  <center>
+    
+    <br>
+<ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="/">Home</a>
+  </li>
+  <li class="breadcrumb-item active">Login</li>
+</ol>
+
+<br>
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-danger alert-dismissable">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+      {{msg.message}}
+    </div>
+  {% endfor %}
+{% endif %}
+<br>
+<div class="card" style="width: 23rem;">
+  <div class="card-body">
+    <h5 class="card-title"><h3><b>Login</b></h3></h5>
+    Effettua il login per visualizzare gli appunti acquistati
+    <br>
+    <br>
+    <form action="" method="post">
+      {% csrf_token %}
+      <input type="text" maxlength="30" class="form-control" id="nomeutente" name="nomeutente"  placeholder="Nome Utente">
+      <br>
+      <input type="password" maxlength="30" class="form-control" id="password" name="password" placeholder="Password">
+      
+      <br>
+      <button type="submit" class="btn btn-primary">Invia</button>
+    </form>
+  </div>
+</div>
+
+<br><br>
+
+
+  </center>
+</div>
+  
+
+{% endblock %}

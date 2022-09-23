@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Appunti UniPv - Imposta Appunti{% endblock %}
+{% block content %}
+
+<div class="container">
+  <center>
+    <br>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/">Home</a>
+      </li>
+      <li class="breadcrumb-item active">Imposta Appunti</li>
+    </ol>
+  <br>
+    {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if error %}danger{% else %}success{% endif %} alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        {{msg.message}}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+<br>
+
+  <h3><b>Imposta Appunti</b></h3><br>
+  
+  <form action="/imposta" method="post">
+    {% csrf_token %}
+    <input type="text" autocomplete="off" maxlength="30" class="form-control" id="nomeutente" name="nomeutente"  placeholder="Nome Utente">
+    <br> 
+      <input class="form-check-input" type="checkbox" value="" name="check" id="check">
+      <label class="form-check-label" for="flexCheckDefault">
+        Nuovo account
+      </label>
+    <br><br>
+    <input type="password" autocomplete="off" maxlength="30" class="form-control" id="password" name="password" placeholder="Password" disabled>
+    <br>
+    <input type="text" autocomplete="off" maxlength="10" class="form-control" id="codicefile" name="codicefile" placeholder="Codice File (lista sotto)">
+    <br>
+    {% if founder %}
+    <input type="text" autocomplete="off" maxlength="1" class="form-control" id="tipo" name="tipo" placeholder="Tipo Associazione (1 normale, 2 capo file)">
+    <br>
+    {% endif %}
+    <button type="submit" id="pulsante" class="btn btn-primary">Invia</button>
+  </form>
+
+</center>
+  <br>
+  <u><a data-toggle="collapse" data-target="#demo">Lista Files</a></u>
+      <div id="demo" class="collapse">
+        {% for l in listafil %}
+          {{l}}<br>
+        {% endfor %}
+      </div>
+    <br><br>
+
+  
+  
+</div>
+  
+
+<script>
+  document.getElementById('check').onchange = function() {
+    document.getElementById('password').disabled = !this.checked;
+    document.getElementById('password').value='';
+};
+</script>
+
+
+{% endblock %}

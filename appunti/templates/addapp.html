@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Appunti UniPv - Aggiungi Appunti{% endblock %}
+{% block content %}
+
+<div class="container">
+  <center>
+    <br>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/">Home</a>
+      </li>
+      <li class="breadcrumb-item active">Aggiungi appunti</li>
+    </ol>
+<br>
+    {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if error %}danger{% else %}success{% endif %} alert-dismissable">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        {{msg.message}}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+<br>
+    <h3><b>Aggiungi Appunti</b></h3>
+
+    <br>
+    <form action="/addappunti" method="POST">
+      {% csrf_token %}
+      <input maxlength="50" autocomplete="off" class="form-control" id="nome" name="nome" placeholder="Nome"><br>
+      <input maxlength="25" autocomplete="off" class="form-control" id="etichetta" name="etichetta" placeholder="Etichetta [univoca, non c'è controllo ma assicuratene] (nome files in folder)"><br>
+      <input maxlength="4" autocomplete="off" class="form-control" id="pagine" name="pagine" placeholder="Numero Pagine"><br>
+      <input maxlength="4" autocomplete="off" class="form-control" id="prezzo" name="prezzo" placeholder="Prezzo"><br>
+      <input maxlength="1" autocomplete="off" class="form-control" id="anno" name="anno" placeholder="Anno"><br>
+      <input maxlength="7" autocomplete="off" class="form-control" id="codicecorso" name="codicecorso" placeholder="Codice Corso"><br>
+      <input maxlength="1000" autocomplete="off" class="form-control" id="info" name="info" placeholder="Info (max 1000 Caratteri) [niente apostrofi o virgolette, puoi formattare html]"><br>
+      <button type="submit" name="button1" id="button1" class="btn btn-primary">Invia</button>
+    </form><br>
+  </center>
+  <hr>
+    <u><a data-toggle="collapse" data-target="#demo">Lista Corsi</a></u>
+      <div id="demo" class="collapse">
+        {% for l in listacorsi %}
+          {{l}}<br>
+        {% endfor %}
+      </div>
+    <br>
+    
+    <center>
+    <h3><b>Aggiungi Corsi</b></h3>
+
+    <br>
+    <form action="/addcorsi" method="POST">
+      {% csrf_token %}
+      <input maxlength="50" class="form-control" id="nome" name="nome" placeholder="Nome Corso"><br>
+      <button type="submit" name="button1" id="button1" class="btn btn-primary">Invia</button>
+    </form><br>
+  </center>
+    <br>
+  
+</div>
+  
+
+{% endblock %}
