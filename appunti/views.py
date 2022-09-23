@@ -122,7 +122,7 @@ def cookies(request):
         if pp==0:
             return 0 #non loggato ma ha la sessione
         elif pp==-1:
-            return -2 #ha una sessione che non esiste
+            return 0 #ha una sessione che non esiste DA CAMBIARE IN -2
         
         i=0
         pp2=-1
@@ -138,7 +138,7 @@ def cookies(request):
         elif pp2==3:
             return 3 #loggato utente founder (serve per add appunti)
         elif pp2==-1:
-            return -2 #loggato a un account che non esiste
+            return 0 #loggato a un account che non esiste
         
     else:
         return -1 #non ha la sessione
