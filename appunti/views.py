@@ -166,6 +166,7 @@ def handler404(request, *args, **argv):
     response.status_code = 404
     return response
 
+"""
 def reload(request):
 
     global sessioni
@@ -217,6 +218,7 @@ def reload(request):
         possessofile.append(Possessofile(myresult[i][0],myresult[i][1],myresult[i][2]))
 
     return redirect("/")
+"""
 
 def getimage(request,id):
 
