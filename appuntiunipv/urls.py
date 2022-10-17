@@ -29,5 +29,4 @@ urlpatterns = [
     path('getimage/<str:id>', views.getimage, name='getimage'),
     path('imposta', views.imposta, name='imposta'),
     path('profilo', views.profilo, name='profilo'),
-    #path('reload', views.reload, name='reload'),
 ]

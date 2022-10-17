@@ -7,35 +7,129 @@ import time
 import secrets
 import hashlib
 import random
-import sqlite3
 from operator import attrgetter
 
 from .forms import Login, AddApp, CorsiForm, ImpostaApp, Cambiopassword
+
+global sessioni
+global utenti
+global filess
+global corsi
+global possessofile
+global img
+
+class Sessioni(object):
+    def __init__(self,codice,codiceutente,timestamp):
+        self.codice=codice
+        self.codiceutente=codiceutente
+        self.timestamp=timestamp
+
+class Utenti(object):
+    def __init__(self,codice,nomeutente,password,pex):
+        self.codice=codice
+        self.nomeutente=nomeutente
+        self.password=password
+        self.pex=pex
+
+class Files(object):
+    def __init__(self,codice,nome,etichetta,pagine,prezzo,anno,corso,info):
+        self.codice=codice
+        self.nome=nome
+        self.etichetta=etichetta
+        self.pagine=pagine
+        self.prezzo=prezzo
+        self.anno=anno
+        self.corso=corso
+        self.info=info #contatti, metodi di pagamento, prof, altre info, max 100 caratteri
+
+class Corsi(object):
+    def __init__(self,codice,nome):
+        self.codice=codice
+        self.nome=nome
+
+class Possessofile(object):
+    def __init__(self,codicefile,codiceutente,tipo):
+        self.codicefile=codicefile
+        self.codiceutente=codiceutente
+        self.tipo=tipo
+
+class Image(object):
+    def __init__(self,codice,etichetta,pagina):
+        self.codice=codice
+        self.etichetta=etichetta
+        self.pagina=pagina
+
+def database():
+    global mydb
+
+    mydb = mysql.connector.connect(
+      host="g4yltwdo6z0izlm6.chr7pe7iynqr.eu-west-1.rds.amazonaws.com",
+      user="jz1u976ib94rhddq",
+      passwd="m59m6z0mc0l6ko4r",
+      database="gpf7ryl7vno85w8x"
+    )
+
+sessioni=[]
+utenti=[]
+filess=[]
+corsi=[]
+possessofile=[]
+img=[]
+
+database()
+mydb.commit()
+mycursor = mydb.cursor()
+mycursor.execute("SELECT * FROM sessioniappunti")
+myresult = mycursor.fetchall()
+i=0
+for i in range(len(myresult)):
+    sessioni.append(Sessioni(myresult[i][0],myresult[i][1],0))
+
+mycursor.execute("SELECT * FROM utentiappunti")
+myresult = mycursor.fetchall()
+i=0
+for i in range(len(myresult)):
+    utenti.append(Utenti(myresult[i][0],myresult[i][1],myresult[i][2],myresult[i][3]))
+
+mycursor.execute("SELECT * FROM filesappunti")
+myresult = mycursor.fetchall()
+i=0
+for i in range(len(myresult)):
+    filess.append(Files(myresult[i][0],myresult[i][1],myresult[i][2],myresult[i][3],myresult[i][4],myresult[i][5],myresult[i][6],myresult[i][7]))
+
+mycursor.execute("SELECT * FROM corsiappunti")
+myresult = mycursor.fetchall()
+i=0
+for i in range(len(myresult)):
+    corsi.append(Corsi(myresult[i][0],myresult[i][1]))
+
+mycursor.execute("SELECT * FROM possessofileappunti")
+myresult = mycursor.fetchall()
+i=0
+for i in range(len(myresult)):
+    possessofile.append(Possessofile(myresult[i][0],myresult[i][1],myresult[i][2]))
 
 def cookies(request):
     if request.COOKIES.get('sessione'):
         c=request.COOKIES.get('sessione')
 
         pp=-1
-
-        con = sqlite3.connect('appuntiunipvdb.db')
-        cur = con.cursor()
-        q=cur.execute("SELECT codiceutente FROM sessioniappunti WHERE codice='"+c+"';")
-        r=q.fetchall()
-        if len(r)!=0:
-            pp=r[0][0]
-
+        i=0
+        for i in range(len(sessioni)):
+            if sessioni[i].codice==c:
+                pp=sessioni[i].codiceutente
+                break
         if pp==0:
             return 0 #non loggato ma ha la sessione
         elif pp==-1:
-            return -2 #ha una sessione che non esiste DA CAMBIARE IN -2
+            return 0 #ha una sessione che non esiste DA CAMBIARE IN -2
         
-        q=cur.execute("SELECT pex FROM utentiappunti WHERE codice="+str(pp)+";")
-        r=q.fetchall()
-
+        i=0
         pp2=-1
-        if len(r)!=0:
-            pp2=r[0][0]
+        for i in range(len(utenti)):
+            if utenti[i].codice==pp:
+                pp2=utenti[i].pex
+                break
 
         if pp2==1:
             return 1 #loggato utente normale
@@ -44,7 +138,7 @@ def cookies(request):
         elif pp2==3:
             return 3 #loggato utente founder (serve per add appunti)
         elif pp2==-1:
-            return -2 #loggato a un account che non esiste DA CAMBIARE IN -2
+            return 0 #loggato a un account che non esiste DA CAMBIARE IN -2
         
     else:
         return -1 #non ha la sessione
@@ -72,27 +166,76 @@ def handler404(request, *args, **argv):
     response.status_code = 404
     return response
 
-def getimage(request,id):
+"""
+def reload(request):
 
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT * FROM immaginiappunti;")
-    r=q.fetchall()
-    imgr=r
+    global sessioni
+    global utenti
+    global filess
+    global corsi
+    global possessofile
+
+    if cookies(request)!=3:
+        return redirect("/")
+
+    sessioni=[]
+    utenti=[]
+    filess=[]
+    corsi=[]
+    possessofile=[]
+
+    database()
+    mydb.commit()
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT * FROM sessioniappunti")
+    myresult = mycursor.fetchall()
+    i=0
+    for i in range(len(myresult)):
+        sessioni.append(Sessioni(myresult[i][0],myresult[i][1],0))
+
+    mycursor.execute("SELECT * FROM utentiappunti")
+    myresult = mycursor.fetchall()
+    i=0
+    for i in range(len(myresult)):
+        utenti.append(Utenti(myresult[i][0],myresult[i][1],myresult[i][2],myresult[i][3]))
+
+    mycursor.execute("SELECT * FROM filesappunti")
+    myresult = mycursor.fetchall()
+    i=0
+    for i in range(len(myresult)):
+        filess.append(Files(myresult[i][0],myresult[i][1],myresult[i][2],myresult[i][3],myresult[i][4],myresult[i][5],myresult[i][6],myresult[i][7]))
+
+    mycursor.execute("SELECT * FROM corsiappunti")
+    myresult = mycursor.fetchall()
+    i=0
+    for i in range(len(myresult)):
+        corsi.append(Corsi(myresult[i][0],myresult[i][1]))
+
+    mycursor.execute("SELECT * FROM possessofileappunti")
+    myresult = mycursor.fetchall()
+    i=0
+    for i in range(len(myresult)):
+        possessofile.append(Possessofile(myresult[i][0],myresult[i][1],myresult[i][2]))
+
+    return redirect("/")
+"""
+
+def getimage(request,id):
 
     i=0
     pg=-1
-    for i in range(len(imgr)):
-        if imgr[i][0]==int(id):
-            et=imgr[i][1]
-            pg=imgr[i][2]
+    for i in range(len(img)):
+        if img[i].codice==int(id):
+            et=img[i].etichetta
+            pg=img[i].pagina
+            savei=i
+            p=img[i]
             break
 
     if pg==-1:
         return redirect("/")
 
-    cur.execute("""DELETE FROM immaginiappunti WHERE codice="""+str(id)+""";""")
-    con.commit()
+    img.remove(p)
 
     pathi="filesappunti/"+et+"/"+str(pg)+".jpg"
     image_data = open(pathi, "rb").read()
@@ -102,35 +245,28 @@ def getimage(request,id):
     return HttpResponse(image_data, content_type="image/png")
 
 def getlinkimage(id,npagina):
+    i=0
     et=""
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT etichetta FROM filesappunti WHERE codice="+str(id)+";")
-    r=q.fetchall()
-    if len(r)!=0:
-        et=r[0][0]
+    for i in range(len(filess)):
+        if filess[i].codice==int(id):
+            et=filess[i].etichetta
+            break
 
     if et=="":
         return ""
-
-    q=cur.execute("SELECT * FROM immaginiappunti;")
-    r=q.fetchall()
-    imgr=r
 
     while True:
         nr=random.randint(10000,99999)
         i=0
         checknr=0
-        for i in range(len(imgr)):
-            if imgr[i][0]==nr:
+        for i in range(len(img)):
+            if img[i].codice==nr:
                 checknr=1
                 break
         if checknr==0:
             break
 
-    cur.execute("""INSERT INTO immaginiappunti (codice,etichetta,pagina)
-VALUES ("""+str(nr)+""",  '"""+et+"""', """+str(npagina)+""")""")
-    con.commit()
+    img.append(Image(nr,et,npagina))
 
     return "/getimage/"+str(nr)
 
@@ -155,54 +291,45 @@ def index(request):
     if check==2:
         admin=True
 
+    filessordine=sorted(filess, key=attrgetter('anno'))
+
     pp=0
     if request.COOKIES.get('sessione'):
-        con = sqlite3.connect('appuntiunipvdb.db')
-        cur = con.cursor()
-        q=cur.execute("SELECT codiceutente FROM sessioniappunti WHERE codice='"+request.COOKIES.get('sessione')+"';")
-        r=q.fetchall()
-
-        if len(r)!=0:
-            pp=r[0][0]
-
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT * FROM filesappunti ORDER BY anno;")
-    r=q.fetchall()
-    filessordine=r
-
-    q=cur.execute("SELECT * FROM corsiappunti;")
-    r=q.fetchall()
-    corsir=r
+        i=0
+        pp=0
+        for i in range(len(sessioni)):
+            if sessioni[i].codice==request.COOKIES.get('sessione'):
+                pp=sessioni[i].codiceutente
+                break
 
     i=0
     listaappunti=[]
-    for i in range(len(corsir)):
+    for i in range(len(corsi)):
         listaf=[]
         j=0
         for j in range(len(filessordine)):
-            if filessordine[j][6]==corsir[i][0]:
+            if filessordine[j].corso==corsi[i].codice:
                 loho=False
                 if pp!=0:
-                    q=cur.execute("SELECT codiceutente FROM possessofileappunti WHERE codicefile="+str(filessordine[j][0])+" AND codiceutente="+str(pp)+";")
-                    r=q.fetchall()
-                    if len(r)!=0:
-                        if r[0][0]==pp:
+                    k=0
+                    for k in range(len(possessofile)):
+                        if (possessofile[k].codicefile==filessordine[j].codice) and (pp==possessofile[k].codiceutente):
                             loho=True
+                            break
 
                 info = {
-                    "nome": filessordine[j][1],
-                    "anno": str(filessordine[j][5]),
-                    "pagine": str(filessordine[j][3]),
-                    "prezzo": str(filessordine[j][4]),
-                    "codice": str(filessordine[j][0]),
+                    "nome": filessordine[j].nome,
+                    "anno": str(filessordine[j].anno),
+                    "pagine": str(filessordine[j].pagine),
+                    "prezzo": str(filessordine[j].prezzo),
+                    "codice": str(filessordine[j].codice),
                     "loho": loho,
                 }
                 listaf.append(info)
         
         if len(listaf)!=0:
             info = {
-                "nome": corsir[i][1],
+                "nome": corsi[i].nome,
                 "listaf": listaf,
             }
             listaappunti.append(info)
@@ -217,28 +344,23 @@ def addcorsi(request):
     if request.method == 'POST':
         form = CorsiForm(request.POST)
         if form.is_valid():
-
-            con = sqlite3.connect('appuntiunipvdb.db')
-            cur = con.cursor()
-            q=cur.execute("SELECT codice FROM corsiappunti;")
-            r=q.fetchall()
-            corsir=r
-
             while True:
                 cc=random.randint(10000,99999)
                 i=0
                 checkcc=0
-                for i in range(len(corsir)):
-                    if int(corsir[i][0])==cc:
+                for i in range(len(corsi)):
+                    if int(corsi[i].codice)==cc:
                         checkcc=1
                         break
                 if checkcc==0:
                     break
             
-            cur.execute("""INSERT INTO corsiappunti (codice,nome)
+            corsi.append(Corsi(cc,form.cleaned_data['nome']))
+            database()
+            mycursor = mydb.cursor()
+            mycursor.execute("""INSERT INTO corsiappunti (codice,nome)
     VALUES ("""+str(cc)+""",  '"""+form.cleaned_data['nome']+"""')""")
-            con.commit()
-
+            mydb.commit()
             messages.success(request, 'Corso aggiunto CORRETTAMENTE')
         else:
             messages.success(request, 'Inserisci tutti i campi richiesti')
@@ -253,15 +375,9 @@ def addappunti(request):
     error=True
 
     listacorsi=[]
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT * FROM corsiappunti;")
-    r=q.fetchall()
-    corsir=r
-
     i=0
-    for i in range(len(corsir)):
-        listacorsi.append("- "+str(corsir[i][0])+" "+corsir[i][1]+"\n")
+    for i in range(len(corsi)):
+        listacorsi.append("- "+str(corsi[i].codice)+" "+corsi[i].nome+"\n")
 
     if request.method == 'POST':
         form = AddApp(request.POST)
@@ -289,7 +405,6 @@ def addappunti(request):
             except:
                 checkform=1
                 messages.success(request, 'Il campo Codice Corso deve essere solo numerico')
-                codicecorso=0
 
             try:
                 anno=int(anno)
@@ -297,36 +412,35 @@ def addappunti(request):
                 checkform=1
                 messages.success(request, 'Il campo anno deve essere solo numerico')
 
-            trovato=0
             i=0
-            for i in range(len(corsir)):
-                if int(corsir[i][0])==codicecorso:
+            trovato=0
+            for i in range(len(corsi)):
+                if int(corsi[i].codice)==codicecorso:
                     trovato=1
                     break
             
             if trovato==0:
                 messages.success(request, 'Il Codice Corso non corrisponde a nessun corso')
-                checkform=1
+                checkform==1
 
             if checkform!=1:
-                q=cur.execute("SELECT codice FROM filesappunti;")
-                r=q.fetchall()
-                filessr=r
                 while True:
                     cc=random.randint(10000,99999)
                     i=0
                     checkcc=0
-                    for i in range(len(filessr)):
-                        if int(filessr[i][0])==cc:
+                    for i in range(len(filess)):
+                        if int(filess[i].codice)==cc:
                             checkcc=1
                             break
                     if checkcc==0:
                         break
 
-
-                cur.execute("""INSERT INTO filesappunti (codice,nome,etichetta,pagine,prezzo,anno,corso,info)
+                filess.append(Files(cc,form.cleaned_data['nome'],form.cleaned_data['etichetta'],pagine,prezzo,anno,codicecorso,form.cleaned_data['info']))
+                database()
+                mycursor = mydb.cursor()
+                mycursor.execute("""INSERT INTO filesappunti (codice,nome,etichetta,pagine,prezzo,anno,corso,info)
         VALUES ("""+str(cc)+""",  '"""+form.cleaned_data['nome']+"""', '"""+form.cleaned_data['etichetta']+"""',"""+str(pagine)+""","""+str(prezzo)+""","""+str(anno)+""","""+str(codicecorso)+""",'"""+form.cleaned_data['info']+"""')""")
-                con.commit()
+                mydb.commit()
             
                 messages.success(request, 'Appunto inserito CORRETTAMENTE')
                 error=False
@@ -348,32 +462,23 @@ def imposta(request):
 
     error=True
 
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT codiceutente FROM sessioniappunti WHERE codice='"+request.COOKIES.get('sessione')+"';")
-    r=q.fetchall()
-    if len(r)!=0:
-        pp=r[0][0]
-
-    q=cur.execute("SELECT codice,nome FROM filesappunti;")
-    r=q.fetchall()
-    filessr=r
-
-    q=cur.execute("SELECT * FROM possessofileappunti;")
-    r=q.fetchall()
-    possessofiler=r
+    i=0
+    for i in range(len(sessioni)):
+        if sessioni[i].codice==request.COOKIES.get('sessione'):
+            pp=sessioni[i].codiceutente
+            break
 
     listafil=[]
     i=0
-    for i in range(len(filessr)):
+    for i in range(len(filess)):
         if founder==False:
             j=0
-            for j in range(len(possessofiler)):
-                if (filessr[i][0]==possessofiler[j][0]) and (possessofiler[j][1]==pp) and (possessofiler[j][2]==2):
-                    listafil.append("- "+str(filessr[i][0])+" "+filessr[i][1])
+            for j in range(len(possessofile)):
+                if (filess[i].codice==possessofile[j].codicefile) and (possessofile[j].codiceutente==pp) and (possessofile[j].tipo==2):
+                    listafil.append("- "+str(filess[i].codice)+" "+filess[i].nome)
                     break
         else:
-            listafil.append("- "+str(filessr[i][0])+" "+filessr[i][1])
+            listafil.append("- "+str(filess[i].codice)+" "+filess[i].nome)
 
     #print(listafil)
 
@@ -397,15 +502,11 @@ def imposta(request):
                 checkform=1
                 messages.success(request, 'Il nome utente non deve contenere spazi')
 
-            q=cur.execute("SELECT codice,nomeutente,pex FROM utentiappunti;")
-            r=q.fetchall()
-            utentir=r
-
             i=0
             salvaidu=0
-            for i in range(len(utentir)):
-                if nomeutente==utentir[i][1]:
-                    salvaidu=utentir[i][0]
+            for i in range(len(utenti)):
+                if nomeutente==utenti[i].nomeutente:
+                    salvaidu=utenti[i].codice
                     break
             
             if (salvaidu==0) and (password==""):
@@ -430,8 +531,8 @@ def imposta(request):
             if checkform!=1:
                 i=0
                 filecheck=0
-                for i in range(len(filessr)):
-                    if codicefile==filessr[i][0]:
+                for i in range(len(filess)):
+                    if codicefile==filess[i].codice:
                         filecheck=1
                         break
 
@@ -442,8 +543,8 @@ def imposta(request):
             if (founder==False) and (checkform!=1):
                 i=0
                 possessocheck=0
-                for i in range(len(possessofiler)):
-                    if (codicefile==possessofiler[i][0]) and (pp==possessofiler[i][1]) and (possessofiler[i][2]==2):
+                for i in range(len(possessofile)):
+                    if (codicefile==possessofile[i].codicefile) and (pp==possessofile[i].codiceutente) and (possessofile[i].tipo==2):
                         possessocheck=1
                         break
                 
@@ -460,34 +561,44 @@ def imposta(request):
                         cod=random.randint(10000,99999)
                         i=0
                         checkc=0
-                        for i in range(len(utentir)):
-                            if cod==utentir[i][0]:
+                        for i in range(len(utenti)):
+                            if cod==utenti[i].codice:
                                 checkc=1
                                 break
                         if checkc==0:
                             break
                     
-                    cur.execute("""INSERT INTO utentiappunti (codice,nomeutente,password,pex)
+                    database()
+                    mycursor = mydb.cursor()
+                    mycursor.execute("""INSERT INTO utentiappunti (codice,nomeutente,password,pex)
             VALUES ("""+str(cod)+""",'"""+nomeutente+"""','"""+password+"""',"""+str(pex)+""")""")
-                    con.commit()
-                    salvaidu=cod
+                    mydb.commit()
 
-                cur.execute("""INSERT INTO possessofileappunti (codicefile,codiceutente,tipo)
+                    utenti.append(Utenti(cod,nomeutente,password,pex))
+                    salvaidu=cod
+                
+                database()
+                mycursor = mydb.cursor()
+                mycursor.execute("""INSERT INTO possessofileappunti (codicefile,codiceutente,tipo)
         VALUES ("""+str(codicefile)+""","""+str(salvaidu)+""","""+str(tipo)+""")""")
-                con.commit()
+                mydb.commit()
+
+                possessofile.append(Possessofile(codicefile,salvaidu,tipo))
 
                 if tipo==2:
                     i=0
                     utcheck=0
-                    for i in range(len(utentir)):
-                        if salvaidu==utentir[i][0]:
-                            if (utentir[i][2]!=2) and (utenti[i][2]!=3):
+                    for i in range(len(utenti)):
+                        if salvaidu==utenti[i].codice:
+                            if (utenti[i].pex!=2) and (utenti[i].pex!=3):
                                 utcheck=1
+                                utenti[i].pex=2
                                 break
                     
-                    if utcheck==1:
-                        cur.execute("""UPDATE utentiappunti SET pex=2 WHERE codice="""+str(salvaidu)+""";""")
-                        con.commit()
+                    database()
+                    mycursor = mydb.cursor()
+                    mycursor.execute("""UPDATE utentiappunti SET pex=2 WHERE codice="""+str(salvaidu)+""";""")
+                    mydb.commit()
 
                 messages.success(request, 'Impostazione inserita CORRETTAMENTE')
                 error=False
@@ -522,27 +633,23 @@ def profilo(request):
 
     error=True
 
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT codiceutente FROM sessioniappunti WHERE codice='"+request.COOKIES.get('sessione')+"';")
-    r=q.fetchall()
+    i=0
     pp=0
-    if len(r)!=0:
-        pp=r[0][0]
+    for i in range(len(sessioni)):
+        if sessioni[i].codice==request.COOKIES.get('sessione'):
+            pp=sessioni[i].codiceutente
+            break
     
-    q=cur.execute("SELECT nomeutente FROM utentiappunti WHERE codice="+str(pp)+";")
-    r=q.fetchall()
-    if len(r)!=0:
-        nomeutente=r[0][0]
-
-    q=cur.execute("SELECT * FROM possessofileappunti;")
-    r=q.fetchall()
-    possessofiler=r
+    i=0
+    for i in range(len(utenti)):
+        if pp==utenti[i].codice:
+            nomeutente=utenti[i].nomeutente
+            break
 
     cont=0
     i=0
-    for i in range(len(possessofiler)):
-        if (pp==possessofiler[i][1]) and (possessofiler[i][2]==1):
+    for i in range(len(possessofile)):
+        if (pp==possessofile[i].codiceutente) and (possessofile[i].tipo==1):
             cont=cont+1
 
     ruolo="Utente"
@@ -551,27 +658,24 @@ def profilo(request):
     elif admin==True:
         ruolo="Venditore"
 
-    q=cur.execute("SELECT * FROM filesappunti ORDER BY anno;")
-    r=q.fetchall()
-    filessordine=r
-
     j=0
     listaf=[]
+    filessordine=sorted(filess, key=attrgetter('anno'))
     for j in range(len(filessordine)):
         loho=False
         if pp!=0:
             k=0
-            for k in range(len(possessofiler)):
-                if (possessofiler[k][0]==filessordine[j][0]) and (pp==possessofiler[k][1]):
+            for k in range(len(possessofile)):
+                if (possessofile[k].codicefile==filessordine[j].codice) and (pp==possessofile[k].codiceutente):
                     loho=True
                     break
         if loho==True:
             info = {
-                "nome": filessordine[j][1],
-                "anno": str(filessordine[j][5]),
-                "pagine": str(filessordine[j][3]),
-                "prezzo": str(filessordine[j][4]),
-                "codice": str(filessordine[j][0]),
+                "nome": filessordine[j].nome,
+                "anno": str(filessordine[j].anno),
+                "pagine": str(filessordine[j].pagine),
+                "prezzo": str(filessordine[j].prezzo),
+                "codice": str(filessordine[j].codice),
                 "loho": loho,
             }
             listaf.append(info)
@@ -588,21 +692,21 @@ def profilo(request):
                 messages.success(request, 'Caratteri non consentiti')
 
             if pswcheck==0:
-                q=cur.execute("SELECT codice,password FROM utentiappunti;")
-                r=q.fetchall()
-                utentir=r
-
                 i=0
-                for i in range(len(utentir)):
-                    if utentir[i][0]==pp:
-                        if utentir[i][1]!=vecchia:
+                for i in range(len(utenti)):
+                    if utenti[i].codice==pp:
+                        if utenti[i].password==vecchia:
+                            utenti[i].password=nuova
+                        else:
                             pswcheck=1
                             messages.success(request, 'Password Attuale errata')
                         break
             
             if pswcheck==0:
-                cur.execute("""UPDATE utentiappunti SET password='"""+nuova+"""' WHERE codice="""+str(pp)+""";""")
-                con.commit()
+                database()
+                mycursor = mydb.cursor()
+                mycursor.execute("""UPDATE utentiappunti SET password='"""+nuova+"""' WHERE codice="""+str(pp)+""";""")
+                mydb.commit()
 
                 error=False
                 messages.success(request, 'Password cambiata con Successo')
@@ -630,35 +734,25 @@ def file(request,id):
     if check==2:
         admin=True
 
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT * FROM filesappunti;")
-    r=q.fetchall()
-    filessr=r
-
-    q=cur.execute("SELECT * FROM corsiappunti;")
-    r=q.fetchall()
-    corsir=r
-
     checkp=0
     i=0
-    for j in range(len(filessr)):
-        if filessr[j][0]==int(id):
+    for j in range(len(filess)):
+        if filess[j].codice==int(id):
             i=0
-            for i in range(len(corsir)):
-                if corsir[i][0]==filessr[j][6]:
-                    nomecorso=corsir[i][1]
+            for i in range(len(corsi)):
+                if corsi[i].codice==filess[j].corso:
+                    nomecorso=corsi[i].nome
                     break
 
             info = {
-                "nome": filessr[j][1],
-                "etichetta": filessr[j][2],
-                "anno": str(filessr[j][5]),
-                "pagine": str(filessr[j][3]),
-                "prezzo": str(filessr[j][4]),
-                "codice": str(filessr[j][0]),
-                "corso": str(filessr[j][6]),
-                "info": filessr[j][7],
+                "nome": filess[j].nome,
+                "etichetta": filess[j].etichetta,
+                "anno": str(filess[j].anno),
+                "pagine": str(filess[j].pagine),
+                "prezzo": str(filess[j].prezzo),
+                "codice": str(filess[j].codice),
+                "corso": str(filess[j].corso),
+                "info": filess[j].info,
                 "nomecorso": nomecorso,
             }
             checkp=1
@@ -668,18 +762,19 @@ def file(request,id):
     if checkp==0:
         return redirect("/")
 
-    pp=0
     possiedo=False
-    if request.COOKIES.get('sessione'):
-        q=cur.execute("SELECT codiceutente FROM sessioniappunti WHERE codice='"+request.COOKIES.get('sessione')+"';")
-        r=q.fetchall()
-        if len(r)!=0:
-            pp=r[0][0]
+    i=0
+    pp=0
+    for i in range(len(sessioni)):
+        if sessioni[i].codice==request.COOKIES.get('sessione'):
+            pp=sessioni[i].codiceutente
+            break
 
-    q=cur.execute("SELECT * FROM possessofileappunti WHERE codicefile="+str(id)+" AND codiceutente="+str(pp)+";")
-    r=q.fetchall()
-    if len(r)!=0:
-        possiedo=True
+    i=0
+    for i in range(len(possessofile)):
+        if (int(id)==possessofile[i].codicefile) and (possessofile[i].codiceutente==pp):
+            possiedo=True
+            break
 
     link=[]
 
@@ -705,22 +800,19 @@ def logout(request):
     if (cookies(request))<=0:
         return redirect("/")
 
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT * FROM sessioniappunti;")
-    r=q.fetchall()
-    sessionir=r
-
+    database()
+    mycursor = mydb.cursor()
     s=request.COOKIES.get('sessione')
     test1=0
     i=0
-    for i in range(len(sessionir)):
-        if sessionir[i][0]==s:
+    for i in range(len(sessioni)):
+        if sessioni[i].codice==s:
+            sessioni[i].codiceutente=0
             test1=1
             break
     if test1==1:
-        cur.execute("UPDATE sessioniappunti SET codiceutente=0 WHERE codice='"+s+"';")
-        con.commit()
+        mycursor.execute("UPDATE sessioniappunti SET codiceutente=0 WHERE codice='"+s+"';")
+        mydb.commit()
 
     messages.success(request, 'Logout effettuato Correttamente!')
     return redirect("/")
@@ -728,12 +820,6 @@ def logout(request):
 def login(request):
 
     check=cookies(request)
-
-    con = sqlite3.connect('appuntiunipvdb.db')
-    cur = con.cursor()
-    q=cur.execute("SELECT * FROM sessioniappunti;")
-    r=q.fetchall()
-    sessionir=r
     
     if (check==1) or (check==2) or (check==3):    #utente loggato normale o admin o founder
         return redirect("/")
@@ -746,16 +832,18 @@ def login(request):
             cod=secrets.token_hex(8)
             t=0
             i=0
-            for i in range(len(sessionir)):
-                if sessionir[i][0]==cod:
+            for i in range(len(sessioni)):
+                if sessioni[i].codice==cod:
                     t=1
                     break
             if t==0:
                 break
-
-        cur.execute("""INSERT INTO sessioniappunti (codice,codiceutente,timestamp)
-VALUES ('"""+cod+"""', 0, 0)""")
-        con.commit()
+        database()
+        mycursor = mydb.cursor()
+        mycursor.execute("""INSERT INTO sessioniappunti (codice,codiceutente)
+VALUES ('"""+cod+"""', 0)""")
+        mydb.commit()
+        sessioni.append(Sessioni(cod, 0, 0))
 
         response=render(request, "login.html")
         response.set_cookie(key='sessione',value=cod,max_age=365*24*60*60)
@@ -766,9 +854,9 @@ VALUES ('"""+cod+"""', 0, 0)""")
         s=request.COOKIES.get('sessione')
         times=time.time()
         i=0
-        for i in range(len(sessionir)):
-            if s==sessionir[i][0]:
-                suotimes=float(sessionir[i][2])
+        for i in range(len(sessioni)):
+            if s==sessioni[i].codice:
+                suotimes=float(sessioni[i].timestamp)
                 break
 
         oktempo=0
@@ -778,10 +866,6 @@ VALUES ('"""+cod+"""', 0, 0)""")
             oktempo=1
             messages.success(request, "Devi attendere 1 minuto tra un tentativo e l'altro")
 
-        q=cur.execute("SELECT * FROM utentiappunti;")
-        r=q.fetchall()
-        utentir=r
-
         if oktempo==0:
             form = Login(request.POST)
             if form.is_valid():
@@ -789,29 +873,42 @@ VALUES ('"""+cod+"""', 0, 0)""")
                 password=form.cleaned_data['password']
                 i=0
                 cc=0
-                for i in range(len(utentir)):
-                    if (utentir[i][1]==nomeutente) and (utentir[i][2]==password):
-                        cc=utentir[i][0]
+                for i in range(len(utenti)):
+                    if (utenti[i].nomeutente==nomeutente) and (utenti[i].password==password):
+                        cc=utenti[i].codice
                         break
                 
                 if cc==0:
-                    cur.execute("UPDATE sessioniappunti SET timestamp="+str(times)+" WHERE codice='"+s+"';")
-                    con.commit()
+                    
+                    i=0
+                    for i in range(len(sessioni)):
+                        if s==sessioni[i].codice:
+                            sessioni[i].timestamp=times
+                            break
                     messages.success(request, 'Nome utente o Password Errati')
                 else:
+                    database()
+                    mycursor = mydb.cursor()
                     test1=0
                     i=0
-                    for i in range(len(sessionir)):
-                        if sessionir[i][1]==cc:
-                            soff=sessionir[i][0]
+                    for i in range(len(sessioni)):
+                        if sessioni[i].codiceutente==cc:
+                            sessioni[i].codiceutente=0
+                            soff=sessioni[i].codice
                             test1=1
                             break
                     if test1==1:
-                        cur.execute("UPDATE sessioniappunti SET codiceutente=0 WHERE codice='"+soff+"';")
-                        con.commit()
+                        mycursor.execute("UPDATE sessioniappunti SET codiceutente=0 WHERE codice='"+soff+"';")
+                        mydb.commit()
 
-                    cur.execute("UPDATE sessioniappunti SET codiceutente="+str(cc)+" WHERE codice='"+s+"';")
-                    con.commit()
+                    mycursor.execute("UPDATE sessioniappunti SET codiceutente="+str(cc)+" WHERE codice='"+s+"';")
+                    mydb.commit()
+
+                    i=0
+                    for i in range(len(sessioni)):
+                        if s==sessioni[i].codice:
+                            sessioni[i].codiceutente=cc
+                            break
 
                     messages.success(request, 'Login Effettuato Correttamente!')
                     return redirect("/")
