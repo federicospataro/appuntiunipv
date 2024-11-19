@@ -63,10 +63,10 @@ def database():
     global mydb
 
     mydb = mysql.connector.connect(
-      host="g4yltwdo6z0izlm6.chr7pe7iynqr.eu-west-1.rds.amazonaws.com",
-      user="jz1u976ib94rhddq",
-      passwd="m59m6z0mc0l6ko4r",
-      database="gpf7ryl7vno85w8x"
+      host="",
+      user="",
+      passwd="",
+      database=""
     )
 
 sessioni=[]
